@@ -6,6 +6,8 @@ public class RectSize {
 	  int width;
 	  int height;
 	  
+	  boolean rotate;
+	  
 	  public RectSize(String name)
 	  {
 	    this.name = name;

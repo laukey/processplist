@@ -1,4 +1,6 @@
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,10 +28,12 @@ public class ProcessPlist
       return;
     }
     String srcDir = args[0];
+	  
+	//String srcDir = "C:\\Users\\laukey\\Desktop\\test\\";
     File srcFileDir = new File(srcDir);
     if (!srcFileDir.isDirectory())
     {
-      System.err.println(srcDir + "不正确，请确认是目录!");
+      System.out.println(srcDir + "不正确，请确认是目录!");
       return;
     }
     
@@ -40,7 +44,7 @@ public class ProcessPlist
     	String png =  _name + ".png";
     	String plist =  _name + ".plist";
     	
-        System.err.println("fileList:" + _name);
+        System.out.println("fileList:" + _name);
         
         try
         {
@@ -61,8 +65,8 @@ public class ProcessPlist
             String lpng = _name + File.separatorChar + rectSize.name;
             String Path = lpng.substring(0, lpng.lastIndexOf("/"));
             
-            System.err.println(lpng);
-            System.err.println(Path);
+            //System.out.println(lpng);
+            //System.out.println(Path);
             
             File ldir = new File(Path);
             if(!ldir.exists()) {
@@ -71,7 +75,7 @@ public class ProcessPlist
             
             readImage(reader, lpng, 
               rectSize.left, rectSize.top, rectSize.width, 
-              rectSize.height);
+              rectSize.height, rectSize.rotate);
           }
         }
         catch (Exception e)
@@ -106,15 +110,57 @@ public class ProcessPlist
       }  
   }  
   
-  public static void readImage(ImageReader reader, String dest, int l, int t, int w, int h)
+  public static void readImage(ImageReader reader, String dest, int l, int t, int w, int h, boolean rotate)
     throws IOException
   {
     ImageReadParam param = reader.getDefaultReadParam();
     Rectangle rect = new Rectangle(l, t, w, h);
     param.setSourceRegion(rect);
-    BufferedImage bi = reader.read(0, param);
+    BufferedImage bi = null;
+    if(rotate) {
+    	bi = rotateImage(reader.read(0, param),-90);
+    	//bi = reader.read(0, param);
+    }else {
+    	bi = reader.read(0, param);
+    }
+    
     ImageIO.write(bi, "png", new File(dest));
   }
+  
+
+/**
+     * 旋转图片为指定角度
+     * 
+     * @param bufferedimage
+     *            目标图像
+     * @param degree
+     *            旋转角度
+     * @return
+     */
+    public static BufferedImage rotateImage(final BufferedImage bufferedimage,
+            final int degree) {
+        int w = bufferedimage.getWidth();
+        int h = bufferedimage.getHeight();
+        
+        int dst_w = h;
+        int dst_h = w;
+        
+        int type = bufferedimage.getColorModel().getTransparency();
+        BufferedImage img;
+        Graphics2D graphics2d;
+        (graphics2d = (img = new BufferedImage(dst_w, dst_h, type)) 
+                .createGraphics()).setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        
+        graphics2d.translate((dst_w - w) / 2,  
+                (dst_h - h) / 2);  
+        graphics2d.rotate(Math.toRadians(degree), w / 2, h / 2);
+        graphics2d.drawImage(bufferedimage, 0, 0, null);
+        graphics2d.dispose();
+        return img;
+    }
+
   
   public static List<RectSize> testXML(String plist)
     throws Exception
@@ -185,11 +231,13 @@ public class ProcessPlist
             {
               if (de.getName().equalsIgnoreCase("false"))
               {
+            	size.rotate = false;            			 
                 list.add(size);
                 break;
               }
               if (de.getName().equalsIgnoreCase("true"))
               {
+            	size.rotate = true;
                 size.width ^= size.height;
                 size.height = (size.width ^ size.height);
                 size.width ^= size.height;
